@@ -1,14 +1,14 @@
 import os, glob, random
 
-def write_darknet_data_file(filename, imgNames, outpath):
+def write_darknet_data_file(filename, imgPaths, outpath):
     filepath = os.path.join(outpath, filename)
     txt_file = open(filepath, 'a')
-    for imgName in imgNames:
-        imgPath = os.path.join(outpath,imgName)
+    for imgPath in imgPaths:
+        # imgPath = os.path.join(outpath,imgName)
         txt_file.write(f'{imgPath}\n')
     txt_file.close()
 
-def split_dataset(images, outpath):
+def split_dataset(images):
     n_data = len(images)
     n_train = int(n_data*0.6)
     n_valid = int((n_data - n_train)/2)
@@ -18,9 +18,7 @@ def split_dataset(images, outpath):
     valid = images[n_train:n_train+n_valid]
     test = images[n_train+n_valid:]
 
-    write_darknet_data_file('train.txt', train, outpath)
-    write_darknet_data_file('valid.txt', valid, outpath)
-    write_darknet_data_file('test.txt', test, outpath)
+    return train, valid, test
 
 
 if __name__ == "__main__":
@@ -43,10 +41,20 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     crowdimgs = glob.glob1(args.crowd, '*.jpg')
-    random.shuffle(crowdimgs)
-    split_dataset(crowdimgs, args.outpath)
+    crowdimgs = [os.path.join(args.crowd, img) for img in crowdimgs]
     chipstackimgs = glob.glob1(args.chipstack, '*.png')
-    random.shuffle(chipstackimgs, args.outpath)
+    chipstackimgs = [os.path.join(args.chipstack, img) for img in chipstackimgs]
 
+    train, valid, test = split_dataset(crowdimgs)
+    train_chips, valid_chips, test_chips = split_dataset(chipstackimgs)
 
+    train.extend(train_chips)
+    random.shuffle(train) 
+    valid.extend(valid_chips)
+    random.shuffle(valid)
+    test.extend(test_chips)
+    random.shuffle(test)
 
+    write_darknet_data_file('train.txt', train, args.outpath)
+    write_darknet_data_file('valid.txt', valid, args.outpath)
+    write_darknet_data_file('test.txt', test, args.outpath)
