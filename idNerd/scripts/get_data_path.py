@@ -1,4 +1,4 @@
-import os, glob
+import os, glob, random
 
 if __name__ == "__main__":
     import argparse
@@ -7,28 +7,44 @@ if __name__ == "__main__":
         description='get the data paths and output the train.txt and test.txt')
     parser.add_argument("--datapath", type=str, 
                         metavar="path to ", 
-                        default="/datasets/Chips/darknet_data",
-                        help="darknet paths")
+                        default="/mnt/mlserver/datasets/chips",
+                        help="darknet data path")
     parser.add_argument("--train_val_ratio", type=float, 
-                    metavar="path to ", 
-                    default=0.8,
-                    help="split ratio of trian val")                 
+                        metavar="path to ", 
+                        default=0.8,
+                        help="split ratio of trian val")
+    parser.add_argument("--type", type=str, 
+                        metavar="image file type", 
+                        default="jpg",
+                        help="image type used in dataset")            
     parser.add_argument("--output", type=str, 
                         metavar="Logging file", 
-                        default="/datasets/Chips/darknet_data")
+                        default="/mnt/mlserver/models/darknet",
+                        help="where to store the files")
     args = parser.parse_args()
 
-    images = glob.glob1(args.datapath, '*.png')
+    images = glob.glob1(args.datapath, '*.'+args.type)
+    print(images[:5])
+    random.shuffle(images)
+    print(images[:5])
 
     n_train = int(len(images)*args.train_val_ratio)
 
-    trainFile = open(os.path.join(args.output, "train.txt"), "a")
-    valFile = open(os.path.join(args.output, "val.txt"), "a")
-
-    for i, img in enumerate(images):
-        if i < n_train:
-            trainFile.write(f'{os.path.join(args.output, img)}\n')
-        else:
-            valFile.write(f'{os.path.join(args.output, img)}\n')
+    trainPath = os.path.join(args.output, "train.txt")
+    mode = "a"
+    if not os.path.exists(trainPath):
+        mode = "w+"
+    trainFile = open(trainPath, mode)
+    for i, img in enumerate(images[:n_train]):
+        trainFile.write(f'{os.path.join(args.datapath, img)}\n')
     trainFile.close()
-    valFile.close()
+
+    if args.train_val_ratio < 1.0:
+        valPath = os.path.join(args.output, "val.txt")
+        mode = "a"
+        if not os.path.exists(valPath):
+            mode = "w+"
+        valFile = open(valPath, mode)
+        for i, img in enumerate(images[n_train:]):
+            valFile.write(f'{os.path.join(args.datapath, img)}\n')
+        valFile.close()
